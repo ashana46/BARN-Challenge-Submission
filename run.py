@@ -8,6 +8,7 @@ import numpy as np
 import rospy
 import rospkg
 
+
 from gazebo_simulation import GazeboSimulation
 
 INIT_POSITION = [-2, 3, 1.57]  # in world frame
@@ -41,7 +42,17 @@ if __name__ == "__main__":
     os.environ["JACKAL_LASER_MODEL"] = "ust10"
     os.environ["JACKAL_LASER_OFFSET"] = "-0.065 0 0.01"
     
-    world_name = "BARN/world_%d.world" %(args.world_idx)
+    if args.world_idx < 300:  # static environment from 0-299
+        world_name = "BARN/world_%d.world" %(args.world_idx)
+        INIT_POSITION = [-2.25, 3, 1.57]  # in world frame
+        GOAL_POSITION = [0, 10]  # relative to the initial position
+    elif args.world_idx < 360:  # Dynamic environment from 300-359
+        world_name = "DynaBARN/world_%d.world" %(args.world_idx - 300)
+        INIT_POSITION = [11, 0, 3.14]  # in world frame
+        GOAL_POSITION = [-20, 0]  # relative to the initial position
+    else:
+        raise ValueError("World index %d does not exist" %args.world_idx)
+        
     print(">>>>>>>>>>>>>>>>>> Loading Gazebo Simulation with %s <<<<<<<<<<<<<<<<<<" %(world_name))   
     rospack = rospkg.RosPack()
     base_path = rospack.get_path('jackal_helper')
@@ -85,9 +96,9 @@ if __name__ == "__main__":
     ## 1. Launch your navigation stack
     ## (Customize this block to add your own navigation stack)
     ##########################################################################################
-    
-    launch_file = join(base_path, '..', 'jackal_helper/launch/move_base_DWA.launch')
-    nav_stack_process = subprocess.Popen([
+   
+    launch_file = join(base_path, '..', 'jackal_helper/launch/move_base_eband_(set2-risk-averse).launch')
+    move_base_process = subprocess.Popen([
         'roslaunch',
         launch_file,
     ])
@@ -107,10 +118,7 @@ if __name__ == "__main__":
 
     nav_as.wait_for_server()
     nav_as.send_goal(mb_goal)
-
-
-
-
+    
     ##########################################################################################
     ## 2. Start navigation
     ##########################################################################################
@@ -132,7 +140,7 @@ if __name__ == "__main__":
     start_time_cpu = time.time()
     collided = False
     
-    while compute_distance(goal_coor, curr_coor) > 1 and not collided and curr_time - start_time < 100:
+    while compute_distance(goal_coor, curr_coor) > 1 and not collided and curr_time - start_time < 60:
         curr_time = rospy.get_time()
         pos = gazebo_sim.get_model_state().pose.position
         curr_coor = (pos.x, pos.y)
@@ -152,7 +160,7 @@ if __name__ == "__main__":
     success = False
     if collided:
         status = "collided"
-    elif curr_time - start_time >= 100:
+    elif curr_time - start_time >= 60:
         status = "timeout"
     else:
         status = "succeeded"
@@ -175,9 +183,6 @@ if __name__ == "__main__":
     print("Navigation metric: %.4f" %(nav_metric))
     
     with open(args.out, "a") as f:
-        f.write("%d %d %d %d %.4f %.4f\n" %(args.world_idx, success, collided, (curr_time - start_time)>=100, curr_time - start_time, nav_metric))
+        f.write("%d %d %d %d %.4f %.4f\n" %(args.world_idx, success, collided, (curr_time - start_time)>=60, curr_time - start_time, nav_metric))
     
     gazebo_process.terminate()
-    gazebo_process.wait()
-    nav_stack_process.terminate()
-    nav_stack_process.wait()
