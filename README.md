@@ -47,6 +47,7 @@ git clone https://github.com/jackal/jackal.git --branch <YOUR_ROS_VERSION>-devel
 git clone https://github.com/jackal/jackal_simulator.git --branch <YOUR_ROS_VERSION>-devel
 git clone https://github.com/jackal/jackal_desktop.git --branch <YOUR_ROS_VERSION>-devel
 git clone https://github.com/utexas-bwi/eband_local_planner.git
+git clone https://github.com/rst-tu-dortmund/teb_local_planner
 ```
 
 5. Install ROS package dependencies: (replace `<YOUR_ROS_VERSION>` with your own, e.g. melodic)
